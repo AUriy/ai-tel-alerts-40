@@ -123,6 +123,18 @@
 
           const timeStr = formatTime(item.updated);
 
+          // Делаем источник кликабельной ссылкой, если он похож на домен
+          let sourceHTML = item.source || '';
+          if (sourceHTML && sourceHTML.includes('.') && !sourceHTML.includes(' ')) {
+            const href = sourceHTML.startsWith('http') ? sourceHTML : 'https://' + sourceHTML;
+            sourceHTML = `<a href="${href}" target="_blank" style="color: inherit; text-decoration: underline;">${sourceHTML}</a>`;
+          }
+
+          const metaInfo = [sourceHTML, item.freq].filter(Boolean).join(' • ');
+          const metaHTML = metaInfo 
+            ? `<div style="font-size: 11px; color: var(--hint-color); margin-top: 8px;">${metaInfo}</div>` 
+            : '';
+
           const card = `
             <div class="card ${item.color}">
               <div class="card-top">
@@ -131,6 +143,7 @@
               </div>
               <div class="card-status">${item.status}</div>
               ${progressHTML}
+              ${metaHTML}
             </div>
           `;
           container.innerHTML += card;
