@@ -109,7 +109,7 @@
       return match ? match.at(1) : rawTime;
     }
 
-    async function loadData() {
+async function loadData() {
       const container = document.getElementById('cards-container');
       try {
         const response = await fetch(API_URL);
@@ -123,14 +123,24 @@
 
           const timeStr = formatTime(item.updated);
 
-          // Делаем источник кликабельной ссылкой, если он похож на домен
+          // Делаем источник кликабельной ссылкой, если указан домен
           let sourceHTML = item.source || '';
           if (sourceHTML && sourceHTML.includes('.') && !sourceHTML.includes(' ')) {
             const href = sourceHTML.startsWith('http') ? sourceHTML : 'https://' + sourceHTML;
             sourceHTML = `<a href="${href}" target="_blank" style="color: inherit; text-decoration: underline;">${sourceHTML}</a>`;
           }
 
-          const metaInfo = [sourceHTML, item.freq].filter(Boolean).join(' • ');
+          // Считаем время следующего обновления на основе interval (в минутах)
+          let nextStr = '';
+          if (timeStr && item.interval > 0) {
+            const parts = timeStr.split(':');
+            const totalMins = (Number(parts.at(0)) * 60 + Number(parts.at(1)) + Number(item.interval)) % 1440;
+            const nh = String(Math.floor(totalMins / 60)).padStart(2, '0');
+            const nm = String(totalMins % 60).padStart(2, '0');
+            nextStr = `след. в ${nh}:${nm}`;
+          }
+
+          const metaInfo = [sourceHTML, item.freq, nextStr].filter(Boolean).join(' • ');
           const metaHTML = metaInfo 
             ? `<div style="font-size: 11px; color: var(--hint-color); margin-top: 8px;">${metaInfo}</div>` 
             : '';
