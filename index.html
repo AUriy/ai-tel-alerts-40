@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Сводка района</title>
+  <script src="https://telegram.org"></script>
+  <style>
+    :root {
+      --bg-color: var(--tg-theme-bg-color, #18222d);
+      --card-bg: var(--tg-theme-secondary-bg-color, #222e3c);
+      --text-color: var(--tg-theme-text-color, #ffffff);
+      --hint-color: var(--tg-theme-hint-color, #8e9ba8);
+      --green: #2ea043;
+      --yellow: #d29922;
+      --red: #da3633;
+      --blue: #2f81f7;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .header h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+    .refresh-btn {
+      background: var(--card-bg);
+      color: var(--text-color);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      border-left: 6px solid var(--blue);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .card.green { border-left-color: var(--green); }
+    .card.yellow { border-left-color: var(--yellow); }
+    .card.red { border-left-color: var(--red); background-color: rgba(218, 54, 51, 0.15); }
+    .card.blue { border-left-color: var(--blue); }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .card-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--hint-color);
+      font-weight: 600;
+    }
+    .card-time {
+      font-size: 11px;
+      color: var(--hint-color);
+    }
+    .card-status {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .progress-wrap {
+      margin-top: 10px;
+      background: rgba(255,255,255,0.1);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .green .progress-bar { background-color: var(--green); }
+    .yellow .progress-bar { background-color: var(--yellow); }
+    .red .progress-bar { background-color: var(--red); }
+    .blue .progress-bar { background-color: var(--blue); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2>Оперативная сводка</h2>
+    <button class="refresh-btn" onclick="loadData()">↻ Обновить</button>
+  </div>
+
+  <div id="cards-container">Загрузка данных...</div>
+
+    <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const CSV_URL = 'https://google.com';
+
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      const result = [];
+      for (let i = 1; i < lines.length; i++) {
+        const row = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+        const clean = row.map(cell => cell.replace(/^"|"$/g, '').trim());
+        if (clean.length >= 4) {
+          result.push({
+            id: clean.at(0),
+            title: clean.at(1),
+            status: clean.at(2),
+            color: clean.at(3) || 'blue',
+            progress: parseInt(clean.at(4)) || 0,
+            updated: clean.at(5) || ''
+          });
+        }
+      }
+      return result;
+    }
+
+    async function loadData() {
+      const container = document.getElementById('cards-container');
+      try {
+        const response = await fetch(CSV_URL + '&t=' + Date.now());
+        if (!response.ok) throw new Error('Ошибка доступа');
+        const csvText = await response.text();
+        const items = parseCSV(csvText);
+
+        container.innerHTML = '';
+        items.forEach(item => {
+          const progressHTML = item.progress > 0 
+            ? `<div class="progress-wrap"><div class="progress-bar" style="width: ${Math.min(item.progress, 100)}%"></div></div>` 
+            : '';
+
+          const card = `
+            <div class="card ${item.color}">
+              <div class="card-top">
+                <span class="card-title">${item.title}</span>
+                <span class="card-time">${item.updated ? 'обн. ' + item.updated : ''}</span>
+              </div>
+              <div class="card-status">${item.status}</div>
+              ${progressHTML}
+            </div>
+          `;
+          container.innerHTML += card;
+        });
+      } catch (e) {
+        container.innerHTML = '<div class="card red"><div class="card-status">Ошибка загрузки. Проверьте доступ по ссылке в таблице.</div></div>';
+      }
+    }
+
+    loadData();
+  </script>
+
+</body>
+</html>
